@@ -1,40 +1,48 @@
-import { useEffect, useState } from "react";
-import type { Schema } from "../amplify/data/resource";
-import { generateClient } from "aws-amplify/data";
+import React, { useEffect, useState } from 'react';
+import type { Schema } from '../amplify/data/resource';
+import { generateClient } from 'aws-amplify/data';
 
+// Initialize the Amplify client for interacting with the data layer
 const client = generateClient<Schema>();
 
 function App() {
-  const [todos, setTodos] = useState<Array<Schema["Todo"]["type"]>>([]);
+  // State to store the list of todos
+  const [todos, setTodos] = useState<Array<Schema['Todo']['type']>>([]);
+  const [selectedTodo, setSelectedTodo] = useState<string>(''); // State to store selected todo option from dropdown
 
+  // Predefined todo options for the dropdown
+  const todoOptions = ['Buy groceries', 'Finish project', 'Call a friend', 'Walk the dog'];
+
+  // Effect to subscribe to the Todo data changes
   useEffect(() => {
-    client.models.Todo.observeQuery().subscribe({
-      next: (data) => setTodos([...data.items]),
+    const subscription = client.models.Todo.observeQuery().subscribe({
+      next: (data) => {
+        setTodos(data.items);
+      },
     });
+
+    // Cleanup subscription when the component is unmounted
+    return () => subscription.unsubscribe();
   }, []);
 
-  function createTodo() {
-    client.models.Todo.create({ content: window.prompt("Todo content") });
-  }
+  // Function to create a new todo item based on the selected option from the dropdown
+  const createTodo = () => {
+    if (selectedTodo) {
+      client.models.Todo.create({ content: selectedTodo });
+      setSelectedTodo(''); // Clear the selected option after creating the todo
+    } else {
+      alert('Please select a todo content from the dropdown.');
+    }
+  };
 
   return (
     <main>
-      <h1>My todos</h1>
-      <button onClick={createTodo}>+ new</button>
-      <ul>
-        {todos.map((todo) => (
-          <li key={todo.id}>{todo.content}</li>
-        ))}
-      </ul>
-      <div>
-        🥳 App successfully hosted. Try creating a new todo.
-        <br />
-        <a href="https://docs.amplify.aws/react/start/quickstart/#make-frontend-updates">
-          Review next step of this tutorial.
-        </a>
-      </div>
-    </main>
-  );
-}
-
-export default App;
+      <h1>My Todos</h1>
+      
+      <label htmlFor="todo-select">Choose a todo content:</label>
+      <select
+        id="todo-select"
+        value={selectedTodo}
+        onChange={(e) => setSelectedTodo(e.target.value)}
+      >
+     
